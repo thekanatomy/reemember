@@ -1,5 +1,6 @@
 // Reemember prototype — vanilla JS, no build step. State persists in localStorage.
-const KEY = "reemember.v4";
+const KEY = "reemember.v5";
+const THEME_KEY = "reemember.theme";
 const $ = (s, el = document) => el.querySelector(s);
 const esc = (s = "") => String(s).replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
@@ -20,6 +21,8 @@ const I = {
   call: '<svg viewBox="0 0 24 24" fill="currentColor"><path d="M6.600 10.800a15 15 0 0 0 6.600 6.600l2.200-2.200a1 1 0 0 1 1-.25c1.100.4 2.300.6 3.600.6a1 1 0 0 1 1 1V20a1 1 0 0 1-1 1A17 17 0 0 1 3 4a1 1 0 0 1 1-1h3.500a1 1 0 0 1 1 1c0 1.300.2 2.500.6 3.600a1 1 0 0 1-.25 1l-2.250 2.200Z"/></svg>',
   mail: '<svg viewBox="0 0 24 24" fill="currentColor"><path d="M4 5h16a2 2 0 0 1 2 2v10a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V7a2 2 0 0 1 2-2Zm0 2v.2l8 5 8-5V7H4Z"/></svg>',
   scan: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 8V6a2 2 0 0 1 2-2h2M16 4h2a2 2 0 0 1 2 2v2M20 16v2a2 2 0 0 1-2 2h-2M8 20H6a2 2 0 0 1-2-2v-2M4 12h16"/></svg>',
+  sun: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.900 4.900l1.400 1.400M17.700 17.700l1.400 1.400M2 12h2M20 12h2M4.900 19.100l1.400-1.400M17.700 6.300l1.400-1.400"/></svg>',
+  moon: '<svg viewBox="0 0 24 24" fill="currentColor"><path d="M20.500 14.500A8.500 8.500 0 0 1 9.500 3.500a.6.6 0 0 0-.8-.7A9.500 9.500 0 1 0 21.200 15.300a.6.6 0 0 0-.7-.8Z"/></svg>',
   close: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><path d="M6 6l12 12M18 6 6 18"/></svg>',
   photo: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="5" width="18" height="15" rx="3"/><circle cx="12" cy="12.5" r="3.5"/><path d="M8 5l1.500-2h5L16 5"/></svg>',
 };
@@ -50,7 +53,7 @@ function softColor([r, g, b]) {
   const mx = Math.max(r, g, b), mn = Math.min(r, g, b), l = (mx + mn) / 2, dl = mx - mn;
   const s = dl === 0 ? 0 : dl / (1 - Math.abs(2 * l - 1));
   let h = 0; if (dl) { h = mx === r ? ((g - b) / dl + 6) % 6 : mx === g ? (b - r) / dl + 2 : (r - g) / dl + 4; h *= 60; }
-  return `hsl(${Math.round(h)} ${Math.round(Math.min(s, .85) * 100)}% ${Math.round((.74 + (l - .5) * .2) * 100)}%)`;
+  return `hsl(${Math.round(h)} ${Math.round(Math.min(s, .85) * 100)}% ${Math.round((.85 + (l - .5) * .12) * 100)}%)`;
 }
 function paletteOf(src) {
   return new Promise((res) => {
@@ -66,6 +69,12 @@ function paletteOf(src) {
   });
 }
 const cardVars = (p) => { const [a, b, c] = p.pal || ["hsl(215 40% 90%)", "hsl(270 40% 92%)", "hsl(200 40% 94%)"]; return `--g1:${a};--g2:${b};--g3:${c}`; };
+
+// ---- theme (light / dark) ----
+try { const t = localStorage.getItem(THEME_KEY); if (t) document.documentElement.dataset.theme = t; } catch {}
+const theme = () => document.documentElement.dataset.theme || (matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light");
+function toggleTheme() { const t = theme() === "dark" ? "light" : "dark"; document.documentElement.dataset.theme = t; try { localStorage.setItem(THEME_KEY, t); } catch {} render(); }
+const themeBtn = () => `<button class="iconbtn" data-theme-toggle aria-label="Switch to ${theme() === "dark" ? "light" : "dark"} mode">${theme() === "dark" ? I.sun : I.moon}</button>`;
 
 // ---- state ----
 let people = load();
@@ -129,7 +138,7 @@ function peopleView() {
     deckList = [...list].sort((a, b) => b.date.localeCompare(a.date)); ui.idx = Math.min(ui.idx, deckList.length - 1);
     body = `<div class="deck" id="deck">${deckList.map((p) => cardHTML(p, "stack")).join("")}</div><div id="deckinfo"></div>`;
   }
-  return `<div class="head"><h1>People</h1></div>
+  return `<div class="head"><h1>People</h1>${themeBtn()}</div>
     <div class="search">${I.search}<input id="q" type="search" placeholder="Search" value="${esc(ui.q)}" /></div>
     <div class="seg"><button data-mode="cards" class="${ui.mode === "cards" ? "on" : ""}">Cards</button><button data-mode="places" class="${ui.mode === "places" ? "on" : ""}">Places</button></div>
     ${body}`;
@@ -142,7 +151,7 @@ function followView() {
   const row = (p) => `<button class="row person" data-open="${p.id}">${avatar(p)}
     <div class="grow"><div class="name">${esc(p.name)}</div><div class="sub">${esc(p.place)} · spoke ${ago(since(p))}</div></div>
     ${isDue(p) ? `<span class="pill" data-draft="${p.id}">Reach out</span>` : `<div class="trail">${dueText(p)}</div>`}</button>`;
-  return `<div class="head"><h1>Follow up</h1></div>
+  return `<div class="head"><h1>Follow up</h1>${themeBtn()}</div>
     <p class="lede">${due.length ? `${due.length} ${due.length === 1 ? "person is" : "people are"} waiting to hear from you.` : "You’re all caught up."}</p>
     ${due.length ? `<div class="section"><div class="group">${due.map(row).join("")}</div></div>` : ""}
     ${later.length ? `<div class="section"><h4>Later</h4><div class="group">${later.map(row).join("")}</div></div>` : ""}`;
@@ -156,7 +165,7 @@ function layoutDeck() {
     c.dataset.d = d;
     c.style.setProperty("--x", d * 44 + "px"); c.style.setProperty("--y", k * k * 7 + "px");
     c.style.setProperty("--r", d * 7 + "deg"); c.style.setProperty("--s", 1 - Math.min(k, 3) * .09);
-    c.style.zIndex = 20 - k; c.style.opacity = k > 3 ? 0 : 1; c.style.filter = `brightness(${1 - Math.min(k, 3) * .05})`;
+    c.style.zIndex = 20 - k; c.style.opacity = k > 3 ? 0 : 1; c.style.filter = k ? `blur(${[0, .7, 1.6, 2.6][Math.min(k, 3)]}px)` : "none";
     c.style.pointerEvents = k > 3 ? "none" : "auto";
   });
   const p = deckList[ui.idx];
@@ -369,6 +378,7 @@ function toast(msg) { const t = $("#toast"); t.textContent = msg; t.hidden = fal
 document.addEventListener("click", (e) => {
   const t = (s) => e.target.closest(s);
   if (t("[data-place]")) { $("#r-place").value = t("[data-place]").dataset.place; return; }
+  if (t("[data-theme-toggle]")) return toggleTheme();
   if (t("[data-addclose]")) return closeAdd();
   if (t("[data-page]")) return setPage(t("[data-page]").dataset.page);
   if (t("[data-add]")) return openAdd();

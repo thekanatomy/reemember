@@ -13,7 +13,7 @@ No build step. In VS Code, install **Live Server** and right-click `index.html` 
 - `app.js` — state (localStorage), views, detail sheet, tools
 
 ## What's in the prototype
-Two tabs and a big **+** in the middle. Light and dark mode follow the system.
+Two tabs and a big **+** in the middle. Light (white) and dark mode: follows the system, with a sun/moon toggle at the top to override.
 - **People** – a circular deck of Pokémon-proportioned (5:7) cards. Front card is large and gently hovers; the rest fan out behind. Swipe or use ← → to browse, tap to open. Each card's colors are sampled from that person's photo. Dots = bond (1–5).
 - **Person** – big card, stats (Bond, Last spoke, Touches), where/when you met, notes, links, Message / Call / Email, reminder cadence.
 - **Follow up** – who's waiting to hear from you, with a suggested message.
