@@ -1,0 +1,34 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <title>Reemember — collect people, keep relationships</title>
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+  <div class="phone">
+    <header class="topbar">
+      <div class="brand"><span class="logo">◈</span> Reemember</div>
+      <div class="stats" id="stats"></div>
+    </header>
+
+    <main id="view" class="view"></main>
+
+    <nav class="tabbar" id="tabbar">
+      <button data-tab="binder" class="active"><i>🗂</i><span>Binder</span></button>
+      <button data-tab="followups"><i>🔔</i><span>Follow-up</span><b id="dueBadge" hidden></b></button>
+      <button data-tab="add" class="fab"><i>＋</i></button>
+      <button data-tab="places"><i>📍</i><span>Places</span></button>
+      <button data-tab="tools"><i>🧰</i><span>Tools</span></button>
+    </nav>
+
+    <div class="sheet-backdrop" id="backdrop" hidden></div>
+    <section class="sheet" id="sheet" hidden></section>
+    <div class="toast" id="toast" hidden></div>
+  </div>
+
+  <script src="data.js"></script>
+  <script src="app.js"></script>
+</body>
+</html>
