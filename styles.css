@@ -55,9 +55,8 @@ button.row:active, a.row:active { background: var(--fill); }
 .trail { display: flex; align-items: center; gap: 6px; color: var(--text3); font-size: 15px; flex: none; }
 .trail svg { width: 8px; height: 14px; }
 .trail.warn { color: var(--orange); font-weight: 500; }
-.avatar { flex: none; width: 40px; height: 40px; border-radius: 50%; display: grid; place-items: center; font-size: 15px; font-weight: 600;
-  background: hsl(var(--h) 60% 55% / .16); color: hsl(var(--h) 55% 42%); }
-@media (prefers-color-scheme: dark) { .avatar { color: hsl(var(--h) 75% 72%); } }
+.avatar { flex: none; width: 40px; height: 40px; border-radius: 50%; display: grid; place-items: center; font-size: 15px; font-weight: 600; color: #fff; text-shadow: 0 1px 2px #0003;
+  background: var(--mesh-s); }
 .avatar.xl { width: 88px; height: 88px; font-size: 32px; }
 .pill { padding: 6px 14px; border-radius: 99px; background: var(--fill); color: var(--blue); font-size: 14px; font-weight: 600; }
 .empty { text-align: center; color: var(--text2); padding: 70px 20px; font-size: 15px; }
@@ -105,3 +104,28 @@ select.plain { border: 0; background: transparent; color: var(--text2); text-ali
 .plainbtn { display: block; width: 100%; padding: 14px; color: var(--blue); font-weight: 500; text-align: center; }
 
 .toast { position: absolute; left: 50%; bottom: 104px; transform: translateX(-50%); z-index: 30; padding: 10px 18px; border-radius: 99px; background: rgba(40, 40, 42, .92); color: #fff; font-size: 14px; font-weight: 500; animation: fade .2s; white-space: nowrap; }
+
+/* ===== Cards: soft gradient portraits, glass caption ===== */
+.avatar, .card { --mesh: radial-gradient(120% 90% at 12% 0%, hsl(var(--h) 88% 68%) 0, transparent 58%), radial-gradient(90% 80% at 100% 28%, hsl(calc(var(--h) + 50) 85% 66%) 0, transparent 60%),
+  radial-gradient(120% 90% at 25% 105%, hsl(calc(var(--h) - 45) 80% 48%) 0, transparent 65%), hsl(var(--h) 70% 55%);
+  --mesh-s: linear-gradient(135deg, hsl(var(--h) 85% 68%), hsl(calc(var(--h) + 45) 80% 52%)); }
+.grid { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+.card { --rx: 0deg; --ry: 0deg; --mx: 50%; --my: 0%; position: relative; aspect-ratio: 4 / 5; border-radius: 22px; overflow: hidden; background: var(--mesh); color: #fff; cursor: pointer;
+  box-shadow: 0 1px 2px #0002, 0 10px 24px -8px hsl(var(--h) 70% 30% / .45); transition: transform .35s cubic-bezier(.2, .8, .2, 1); transform: perspective(800px) rotateX(var(--rx)) rotateY(var(--ry)); }
+.card:active { transform: scale(.97); }
+.card::before { content: ""; position: absolute; inset: 0; background: radial-gradient(circle at var(--mx) var(--my), #fff4, transparent 55%); pointer-events: none; }
+.card-top { position: absolute; top: 12px; left: 12px; right: 12px; display: flex; justify-content: space-between; align-items: center; z-index: 1; }
+.dots { display: inline-flex; gap: 3px; padding: 5px 7px; border-radius: 99px; background: #ffffff2e; backdrop-filter: blur(10px); -webkit-backdrop-filter: blur(10px); }
+.dots i { width: 5px; height: 5px; border-radius: 50%; background: #fff5; } .dots i.on { background: #fff; }
+.due { font-size: 11px; font-weight: 600; padding: 3px 8px; border-radius: 99px; background: #fff; color: #d97706; }
+.mono { position: absolute; inset: 0 0 34% 0; display: grid; place-items: center; font-size: 64px; font-weight: 700; letter-spacing: -.04em; color: #ffffffe6; text-shadow: 0 2px 18px #0003; }
+.glass { position: absolute; left: 8px; right: 8px; bottom: 8px; padding: 10px 12px; border-radius: 16px; background: linear-gradient(#0000001f, #0000001f), #ffffff24; backdrop-filter: blur(22px) saturate(160%); -webkit-backdrop-filter: blur(22px) saturate(160%); border: .5px solid #ffffff40; }
+.cname { font-weight: 600; font-size: 15px; letter-spacing: -.01em; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; text-shadow: 0 1px 6px #0002; }
+.csub { font-size: 12px; color: #ffffffcc; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.card.big { max-width: 270px; margin: 4px auto 16px; cursor: default; box-shadow: 0 2px 4px #0002, 0 24px 48px -12px hsl(var(--h) 70% 30% / .55); }
+.card.big:active { transform: perspective(800px) rotateX(var(--rx)) rotateY(var(--ry)); }
+.card.big .mono { font-size: 92px; } .card.big .cname { font-size: 20px; } .card.big .csub { font-size: 13px; } .card.big .glass { padding: 12px 14px; }
+.stats { display: flex; margin-bottom: 22px; }
+.stats > div { flex: 1; text-align: center; padding: 12px 4px; position: relative; }
+.stats > div + div::before { content: ""; position: absolute; left: 0; top: 14px; bottom: 14px; width: .5px; background: var(--sep); }
+.stats b { display: block; font-size: 17px; font-weight: 600; } .stats span { font-size: 12px; color: var(--text2); }

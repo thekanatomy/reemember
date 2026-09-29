@@ -1,5 +1,5 @@
 // Reemember prototype — vanilla JS, no build step. State persists in localStorage.
-const KEY = "reemember.v2";
+const KEY = "reemember.v3";
 const $ = (s, el = document) => el.querySelector(s);
 const esc = (s = "") => String(s).replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
 const today = () => new Date().toISOString().slice(0, 10);
@@ -21,19 +21,28 @@ const I = {
 };
 
 let people = load();
-let ui = { tab: "people", mode: "recent", q: "" };
+let ui = { tab: "people", mode: "cards", q: "" };
 
 function load() { try { return JSON.parse(localStorage.getItem(KEY)) || structuredClone(SEED); } catch { return structuredClone(SEED); } }
 function save() { try { localStorage.setItem(KEY, JSON.stringify(people)); } catch {} }
 
 // ---- derived ----
 const initials = (n) => n.split(/\s+/).filter((w) => !/^(dr|mr|ms)\.?$/i.test(w)).map((w) => w[0]).slice(0, 2).join("").toUpperCase();
-const hueOf = (n) => [...n].reduce((a, c) => (a * 31 + c.charCodeAt(0)) % 360, 7);
+const HUES = [212, 232, 258, 282, 312, 340, 6, 24, 172, 192]; // avoids yellow/green so white text stays legible
+const hueOf = (n) => HUES[[...n].reduce((a, c) => (a * 31 + c.charCodeAt(0)) % 997, 7) % HUES.length];
 const first = (p) => p.name.replace(/^Dr\.\s*/, "").split(" ")[0];
 const since = (p) => daysSince(p.last);
 const dueIn = (p) => p.cadence - since(p);
 const isDue = (p) => dueIn(p) <= 0;
 const dueText = (p) => { const d = dueIn(p); return d < 0 ? `${-d}d overdue` : d === 0 ? "Today" : `in ${d}d`; };
+const bondOf = (p) => p.bond || 2;
+const short = (n) => (n < 1 ? "Today" : n < 30 ? `${n}d` : n < 365 ? `${Math.round(n / 30)}mo` : `${Math.round(n / 365)}y`);
+const dots = (n) => `<span class="dots" aria-label="Bond ${BOND[n]}">${[1, 2, 3, 4, 5].map((i) => `<i class="${i <= n ? "on" : ""}"></i>`).join("")}</span>`;
+const cardHTML = (p, big = false) => `<div class="card ${big ? "big" : ""}" style="--h:${hueOf(p.name)}" ${big ? "" : `data-open="${p.id}"`}>
+  <div class="card-top">${dots(bondOf(p))}${!big && isDue(p) ? `<span class="due">Follow up</span>` : ""}</div>
+  <div class="mono">${initials(p.name)}</div>
+  <div class="glass"><div class="cname">${esc(p.name)}</div>
+    <div class="csub">${big ? esc([p.title, p.company].filter(Boolean).join(" · ")) : `${esc(p.place)} · ${short(daysSince(p.date))}`}</div>${big ? `<div class="csub">${esc(p.place)}</div>` : ""}</div></div>`;
 const avatar = (p, cls = "") => `<div class="avatar ${cls}" style="--h:${hueOf(p.name)}">${initials(p.name)}</div>`;
 
 // ---- screens ----
@@ -63,11 +72,11 @@ function peopleView() {
       `<div class="section"><h4>${esc(place)}</h4><div class="group">${ps.map((p) => personRow(p, `${esc(p.event)} · ${ago(daysSince(p.date))}`)).join("")}</div></div>`).join("");
   } else {
     const sorted = [...list].sort((a, b) => b.date.localeCompare(a.date));
-    body = `<div class="section"><div class="group">${sorted.map((p) => personRow(p, `${esc(p.place)} · ${ago(daysSince(p.date))}`)).join("")}</div></div>`;
+    body = `<div class="grid">${sorted.map((p) => cardHTML(p)).join("")}</div>`;
   }
   return `<div class="head"><h1>People</h1><button class="iconbtn" data-add aria-label="Add person">${I.plus}</button></div>
     <div class="search">${I.search}<input id="q" type="search" placeholder="Search" value="${esc(ui.q)}" /></div>
-    <div class="seg"><button data-mode="recent" class="${ui.mode === "recent" ? "on" : ""}">Recent</button><button data-mode="places" class="${ui.mode === "places" ? "on" : ""}">Places</button></div>
+    <div class="seg"><button data-mode="cards" class="${ui.mode === "cards" ? "on" : ""}">Cards</button><button data-mode="places" class="${ui.mode === "places" ? "on" : ""}">Places</button></div>
     ${body}`;
 }
 
@@ -96,6 +105,7 @@ function openSheet(html) {
 function closeSheet() { $("#sheet").hidden = $("#backdrop").hidden = true; render(); }
 
 const CADENCE = [[7, "Every week"], [14, "Every 2 weeks"], [30, "Every month"], [60, "Every 2 months"], [90, "Every 3 months"]];
+const bondSelect = (v, id = "bond") => `<select class="plain" id="${id}">${BOND.map((l, i) => i ? `<option value="${i}" ${i === v ? "selected" : ""}>${l}</option>` : "").join("")}</select>`;
 const cadenceLabel = (n) => (CADENCE.find(([d]) => d === n) || [0, `Every ${n} days`])[1];
 const cadenceSelect = (v) => `<select class="plain" id="cad">${CADENCE.map(([d, l]) => `<option value="${d}" ${d === v ? "selected" : ""}>${l}</option>`).join("")}</select>`;
 
@@ -106,7 +116,12 @@ function openDetail(id) {
   const s = p.socials || {};
   openSheet(`<div class="bar"><span style="min-width:60px"></span><span></span><button data-close>Done</button></div>
   <div class="body">
-    <div class="hero">${avatar(p, "xl")}<h2>${esc(p.name)}</h2><p>${esc([p.title, p.company].filter(Boolean).join(" · "))}</p></div>
+    ${cardHTML(p, true)}
+    <div class="group stats">
+      <div><b>${BOND[bondOf(p)]}</b><span>Bond</span></div>
+      <div><b>${short(since(p))}</b><span>Last spoke</span></div>
+      <div><b>${(p.log || []).length}</b><span>Touches</span></div>
+    </div>
     <div class="actions">
       ${act(I.msg, "Message", "", `data-draft="${p.id}"`)}
       ${s.phone ? act(I.call, "Call", "tel:" + s.phone) : act(I.call, "Call", "")}
@@ -116,6 +131,7 @@ function openDetail(id) {
       <div class="row kv"><span>Met at</span><span>${esc(p.place)}</span></div>
       <div class="row kv"><span>Context</span><span>${esc(p.event)}</span></div>
       <div class="row kv"><span>When</span><span>${fmtDate(p.date)}</span></div>
+      <div class="row kv"><span style="color:var(--text)">Bond</span>${bondSelect(bondOf(p))}</div>
     </div></div>
     <div class="section"><h4>Remember</h4><div class="group"><div class="row"><textarea class="plain" id="notes" rows="3" placeholder="Add a note">${esc(p.notes)}</textarea></div></div></div>
     ${links.length ? `<div class="section"><h4>Links</h4><div class="group">${links.map(([k, v]) => { const m = SOCIAL_META[k];
@@ -128,6 +144,8 @@ function openDetail(id) {
   </div>`);
   $("#notes").onblur = (e) => { p.notes = e.target.value.trim(); save(); };
   $("#cad").onchange = (e) => { p.cadence = +e.target.value; save(); toast("Reminder updated"); };
+  $("#bond").onchange = (e) => { p.bond = +e.target.value; save(); openDetail(id); };
+  tilt($(".card.big"));
 }
 
 function suggestion(p) {
@@ -165,7 +183,8 @@ function openAdd() {
     <div class="section"><h4>Where you met</h4><div class="group">${f("f-place", "Place", "e.g. Coffee, Mill Ave")}${f("f-event", "Context", "e.g. Intro by Sam")}</div></div>
     <div class="section"><h4>Remember</h4><div class="group"><div class="row"><textarea class="plain" id="f-notes" rows="3" placeholder="What should future-you remember?"></textarea></div></div></div>
     <div class="section"><h4>Links</h4><div class="group">${f("s-instagram", "Instagram", "@handle")}${f("s-linkedin", "LinkedIn", "handle")}${f("s-email", "Email")}${f("s-phone", "Phone")}</div></div>
-    <div class="section"><div class="group"><div class="row kv"><span style="color:var(--text)">Remind me</span>${cadenceSelect(30)}</div></div></div>
+    <div class="section"><div class="group"><div class="row kv"><span style="color:var(--text)">Bond</span>${bondSelect(2, "f-bond")}</div>
+      <div class="row kv"><span style="color:var(--text)">Remind me</span>${cadenceSelect(30)}</div></div></div>
   </div>`);
   $("#f-name").focus();
   $("#scan").onclick = () => {
@@ -179,9 +198,17 @@ function openAdd() {
     if (!g("f-name")) return toast("Add a name first");
     const socials = {}; ["instagram", "linkedin", "email", "phone"].forEach((k) => g("s-" + k) && (socials[k] = g("s-" + k).replace(/^@/, "")));
     people.unshift({ id: "p" + Date.now(), name: g("f-name"), title: g("f-title"), company: g("f-company"), place: g("f-place") || "Somewhere", event: g("f-event") || "—",
-      notes: g("f-notes"), tags: [], socials, cadence: +$("#cad").value, date: today(), last: today(), log: [{ d: today(), t: "Met." }] });
+      notes: g("f-notes"), tags: [], socials, bond: +$("#f-bond").value, cadence: +$("#cad").value, date: today(), last: today(), log: [{ d: today(), t: "Met." }] });
     save(); ui.tab = "people"; closeSheet(); toast("Added");
   };
+}
+
+// subtle Apple-style depth on the big card
+function tilt(c) {
+  if (!c) return;
+  c.onpointermove = (e) => { const r = c.getBoundingClientRect(), x = (e.clientX - r.left) / r.width - .5, y = (e.clientY - r.top) / r.height - .5;
+    c.style.setProperty("--ry", x * 10 + "deg"); c.style.setProperty("--rx", -y * 10 + "deg"); c.style.setProperty("--mx", (x + .5) * 100 + "%"); c.style.setProperty("--my", (y + .5) * 100 + "%"); };
+  c.onpointerleave = () => { c.style.setProperty("--ry", "0deg"); c.style.setProperty("--rx", "0deg"); };
 }
 
 // ---- actions ----
