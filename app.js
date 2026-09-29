@@ -21,7 +21,8 @@ const I = {
 };
 
 let people = load();
-let ui = { tab: "people", mode: "cards", q: "" };
+let ui = { tab: "people", mode: "cards", q: "", idx: 0 };
+let deckList = [];
 
 function load() { try { return JSON.parse(localStorage.getItem(KEY)) || structuredClone(SEED); } catch { return structuredClone(SEED); } }
 function save() { try { localStorage.setItem(KEY, JSON.stringify(people)); } catch {} }
@@ -38,11 +39,12 @@ const dueText = (p) => { const d = dueIn(p); return d < 0 ? `${-d}d overdue` : d
 const bondOf = (p) => p.bond || 2;
 const short = (n) => (n < 1 ? "Today" : n < 30 ? `${n}d` : n < 365 ? `${Math.round(n / 30)}mo` : `${Math.round(n / 365)}y`);
 const dots = (n) => `<span class="dots" aria-label="Bond ${BOND[n]}">${[1, 2, 3, 4, 5].map((i) => `<i class="${i <= n ? "on" : ""}"></i>`).join("")}</span>`;
-const cardHTML = (p, big = false) => `<div class="card ${big ? "big" : ""}" style="--h:${hueOf(p.name)}" ${big ? "" : `data-open="${p.id}"`}>
-  <div class="card-top">${dots(bondOf(p))}${!big && isDue(p) ? `<span class="due">Follow up</span>` : ""}</div>
+const cardHTML = (p, mode = "grid") => { const rich = mode !== "grid";
+  return `<div class="card ${mode}" style="--h:${hueOf(p.name)}" data-id="${p.id}">
+  <div class="card-top">${dots(bondOf(p))}${mode !== "big" && isDue(p) ? `<span class="due">Follow up</span>` : ""}</div>
   <div class="mono">${initials(p.name)}</div>
   <div class="glass"><div class="cname">${esc(p.name)}</div>
-    <div class="csub">${big ? esc([p.title, p.company].filter(Boolean).join(" · ")) : `${esc(p.place)} · ${short(daysSince(p.date))}`}</div>${big ? `<div class="csub">${esc(p.place)}</div>` : ""}</div></div>`;
+    <div class="csub">${rich ? esc([p.title, p.company].filter(Boolean).join(" · ")) : `${esc(p.place)} · ${short(daysSince(p.date))}`}</div>${rich ? `<div class="csub">${esc(p.place)}</div>` : ""}</div></div>`; };
 const avatar = (p, cls = "") => `<div class="avatar ${cls}" style="--h:${hueOf(p.name)}">${initials(p.name)}</div>`;
 
 // ---- screens ----
@@ -52,6 +54,7 @@ function render() {
   $("#tabbar").innerHTML = [["people", "People", I.people, 0], ["follow", "Follow up", I.bell, due]].map(([k, l, ic, n]) =>
     `<button data-tab="${k}" class="${ui.tab === k ? "on" : ""}">${ic}<span>${l}</span>${n ? `<i class="badge">${n}</i>` : ""}</button>`).join("");
   const q = $("#q"); if (q) q.oninput = onSearch;
+  if ($("#deck")) { layoutDeck(); setupDeck(); }
 }
 
 function personRow(p, detail) {
@@ -72,7 +75,8 @@ function peopleView() {
       `<div class="section"><h4>${esc(place)}</h4><div class="group">${ps.map((p) => personRow(p, `${esc(p.event)} · ${ago(daysSince(p.date))}`)).join("")}</div></div>`).join("");
   } else {
     const sorted = [...list].sort((a, b) => b.date.localeCompare(a.date));
-    body = `<div class="grid">${sorted.map((p) => cardHTML(p)).join("")}</div>`;
+    deckList = sorted; ui.idx = Math.min(ui.idx, sorted.length - 1);
+    body = `<div class="deck" id="deck">${sorted.map((p) => cardHTML(p, "stack")).join("")}</div><div id="deckinfo"></div>`;
   }
   return `<div class="head"><h1>People</h1><button class="iconbtn" data-add aria-label="Add person">${I.plus}</button></div>
     <div class="search">${I.search}<input id="q" type="search" placeholder="Search" value="${esc(ui.q)}" /></div>
@@ -116,7 +120,7 @@ function openDetail(id) {
   const s = p.socials || {};
   openSheet(`<div class="bar"><span style="min-width:60px"></span><span></span><button data-close>Done</button></div>
   <div class="body">
-    ${cardHTML(p, true)}
+    ${cardHTML(p, "big")}
     <div class="group stats">
       <div><b>${BOND[bondOf(p)]}</b><span>Bond</span></div>
       <div><b>${short(since(p))}</b><span>Last spoke</span></div>
@@ -202,6 +206,37 @@ function openAdd() {
     save(); ui.tab = "people"; closeSheet(); toast("Added");
   };
 }
+
+// ---- circular card deck: front card large, the rest fanned behind on an arc ----
+function layoutDeck() {
+  const cards = [...$("#deck").children], n = cards.length, half = Math.floor(n / 2);
+  cards.forEach((c, i) => {
+    const d = ((i - ui.idx) % n + n + half) % n - half, k = Math.abs(d);
+    c.dataset.d = d;
+    c.style.setProperty("--x", d * 44 + "px"); c.style.setProperty("--y", k * k * 7 + "px");
+    c.style.setProperty("--r", d * 7 + "deg"); c.style.setProperty("--s", 1 - Math.min(k, 3) * .09);
+    c.style.zIndex = 20 - k; c.style.opacity = k > 3 ? 0 : 1; c.style.filter = `brightness(${1 - Math.min(k, 3) * .1})`;
+    c.style.pointerEvents = k > 3 ? "none" : "auto";
+  });
+  const p = deckList[ui.idx];
+  $("#deckinfo").innerHTML = `<div class="group stats"><div><b>${BOND[bondOf(p)]}</b><span>Bond</span></div><div><b>${short(since(p))}</b><span>Last spoke</span></div><div><b>${(p.log || []).length}</b><span>Touches</span></div></div>
+    <p class="hint">${ui.idx + 1} of ${deckList.length} · swipe to browse, tap to open</p>`;
+}
+const goDeck = (k) => { const n = deckList.length; ui.idx = (ui.idx + k + n * 4) % n; layoutDeck(); };
+function setupDeck() {
+  const deck = $("#deck"); let sx = 0, dx = 0, down = null, moved = false;
+  const front = () => deck.querySelector('[data-d="0"]');
+  deck.onpointerdown = (e) => { down = e.target.closest(".card"); sx = e.clientX; dx = 0; moved = false; deck.setPointerCapture(e.pointerId); };
+  deck.onpointermove = (e) => { if (!down) return; dx = e.clientX - sx; if (Math.abs(dx) > 6) moved = true;
+    if (moved) { const f = front(); f.classList.add("drag"); f.style.setProperty("--dx", dx + "px"); f.style.setProperty("--dr", dx / 22 + "deg"); } };
+  deck.onpointerup = deck.onpointercancel = () => {
+    if (!down) return; const f = front(); f.classList.remove("drag"); f.style.setProperty("--dx", "0px"); f.style.setProperty("--dr", "0deg");
+    if (moved) { if (dx < -50) goDeck(1); else if (dx > 50) goDeck(-1); }
+    else if (down) { const d = +down.dataset.d; d === 0 ? openDetail(down.dataset.id) : goDeck(d); }
+    down = null;
+  };
+}
+document.addEventListener("keydown", (e) => { if ($("#deck") && $("#sheet").hidden && (e.key === "ArrowRight" || e.key === "ArrowLeft")) goDeck(e.key === "ArrowRight" ? 1 : -1); });
 
 // subtle Apple-style depth on the big card
 function tilt(c) {
