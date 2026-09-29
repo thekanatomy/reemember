@@ -13,11 +13,13 @@ No build step. In VS Code, install **Live Server** and right-click `index.html` 
 - `app.js` — state (localStorage), views, detail sheet, tools
 
 ## What's in the prototype
-Two tabs, one add button. Light and dark mode follow the system.
-- **People** – a circular deck of gradient cards: the front card is large and the rest fan out behind it. Swipe (or use ← →) to bring the next one forward, tap the front card to open it. Search and a Cards / Places toggle. Dots on each card show the bond (1–5); a "Follow up" tag appears when they're due
-- **Person** – a large card with subtle tilt, stats (Bond, Last spoke, Touches), then where/when you met, where/when you met, your notes, links, one-tap Message / Call / Email, reminder cadence, "Mark as contacted"
-- **Follow up** – who's waiting to hear from you, with a suggested message and one tap to send
-- **New person (+)** – scan a business card (demo) or type it in
+Two tabs and a big **+** in the middle. Light and dark mode follow the system.
+- **People** – a circular deck of Pokémon-proportioned (5:7) cards. Front card is large and gently hovers; the rest fan out behind. Swipe or use ← → to browse, tap to open. Each card's colors are sampled from that person's photo. Dots = bond (1–5).
+- **Person** – big card, stats (Bond, Last spoke, Touches), where/when you met, notes, links, Message / Call / Email, reminder cadence.
+- **Follow up** – who's waiting to hear from you, with a suggested message.
+- **+ (center button)** – opens the camera immediately to scan an Instagram / LinkedIn profile or business card. The card is created automatically; you just say where you met. **Swipe right** for the manual form.
+
+> The scan is simulated: it uses the camera preview but returns sample profiles. A real version sends the photo to a vision/OCR model (e.g. Claude's vision API) from a backend and pulls the profile picture.
 
 ## Next steps
 Real card/QR scanning (camera + OCR), contacts import, push reminders, map view with geolocation, backend + auth, React/React Native port.

@@ -51,11 +51,12 @@ const SEED = [
     socials: { linkedin: "aisharahman", x: "aisha_grows" }, log: [] },
 ];
 
-// Fake “scanned” cards for the Add → Scan demo.
+// Pretend results of scanning a profile screenshot. A real version sends the photo to a vision/OCR model.
 const SCAN_SAMPLES = [
-  { name: "Lucas Bennett", title: "iOS Engineer", company: "Airbnb", socials: { linkedin: "lucasbennett", github: "lbennett" } },
-  { name: "Noor Haddad", title: "Founder", company: "Sawa Labs", socials: { instagram: "noorhaddad", email: "noor@sawa.io" } },
-  { name: "Tessa Grant", title: "Creative Director", company: "Studio Mesa", socials: { instagram: "tessa.creates", x: "tessagrant" } },
+  { platform: "Instagram", name: "Tessa Grant",   title: "Creative Director", company: "Studio Mesa", socials: { instagram: "tessa.creates" } },
+  { platform: "LinkedIn",  name: "Noor Haddad",   title: "Founder",           company: "Sawa Labs",   socials: { linkedin: "noorhaddad" } },
+  { platform: "Instagram", name: "Lucas Bennett", title: "iOS Engineer",      company: "Airbnb",      socials: { instagram: "lucasbennett" } },
+  { platform: "Business card", name: "Amara Osei", title: "Product Manager",  company: "Stripe",      socials: { email: "amara@stripe.com", linkedin: "amaraosei" } },
 ];
 
 const SOCIAL_META = {
